@@ -39,14 +39,11 @@ class Tanh(Functional):
     
 class Softmax(Functional):
     def fun(self, x):
-        exps = np.exp(x - np.max(x, axis=1, keepdims=True))  # stability trick
-        self.out = exps / np.sum(exps, axis=1, keepdims=True)
-        return self.out
+        exps = np.exp(x)  
+        return exps / np.sum(exps, axis=1, keepdims=True)
 
     def der(self, x):
-        # Returns Jacobian diagonal simplification only if used with cross-entropy
-        # Normally, don't use der() directly. Use directly in backward pass with cross-entropy.
-        return self.out * (1 - self.out)
+        return self.fun(x) * (1 - self.fun(x))
 
 class Linear:
     def __init__(self, input_size, output_size):
