@@ -2,32 +2,58 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 
-def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+class Functional:
+    def fun():
+        raise NotImplementedError
 
-def sigmoid_der(x):
-    return sigmoid(x) * (1 - sigmoid(x))
+    def forward(self,x):
+        self.z = self.fun(x)
+        return self.z
 
-def relu(x):
-    return np.maximum(0, x)
+    def der():
+        raise NotImplementedError
 
-def relu_der(x):
-    return (x > 0).astype(float)
+    def backward(self, output_error, lr):
+        return output_error * self.der(self.z)
+    
+class Sigmoid(Functional):
+    def fun(self,x):
+        return 1 / (1 + np.exp(-x))
 
-def tanh(x):
-    return np.tanh(x)
+    def der(self,x):
+        return self.fun(x) * (1 - self.fun(x))
+    
+class Relu(Functional):
+    def fun(self,x):
+        return np.maximum(0, x)
 
-def tanh_der(x):
-    return 1 - np.tanh(x)**2
+    def der(self,x):
+        return (x > 0).astype(float)
 
-class Layer:
-    def __init__(self, input_size, output_size, activation, activation_der):
+class Tanh(Functional):
+    def fun(self,x):
+        return np.tanh(x)
+
+    def der(self,x):
+        return 1 - np.tanh(x)**2
+    
+class Softmax(Functional):
+    def fun(self, x):
+        exps = np.exp(x - np.max(x, axis=1, keepdims=True))  # stability trick
+        self.out = exps / np.sum(exps, axis=1, keepdims=True)
+        return self.out
+
+    def der(self, x):
+        # Returns Jacobian diagonal simplification only if used with cross-entropy
+        # Normally, don't use der() directly. Use directly in backward pass with cross-entropy.
+        return self.out * (1 - self.out)
+
+class Linear:
+    def __init__(self, input_size, output_size):
         self.weights = np.random.randn(input_size, output_size)  #weights[i,j]
         self.biases = np.zeros((1, output_size))
         self.input_size = input_size
         self.output_size = output_size
-        self.activation = activation
-        self.activation_der = activation_der
 
     def forget(self):
         i = random.randint(0, self.input_size - 1)
@@ -38,12 +64,10 @@ class Layer:
     def forward(self, input_data):
         self.input = input_data
         self.z = np.dot(input_data, self.weights) + self.biases
-        self.output = self.activation(self.z)
-        return self.output
+        return self.z
 
     def backward(self, output_error, lr):
-        d_activation = self.activation_der(self.z) #d_activation[j]
-        delta = output_error * d_activation #delta[k,j]
+        delta = output_error  #delta[k,j]
 
         dw = np.dot(self.input.T, delta) #dw[i,j] = input[k,i]*delta[k,j] (automatically sum over all k)
         db = np.sum(delta, axis=0, keepdims=True)
@@ -55,7 +79,7 @@ class Layer:
 
         return prev_error
     
-class Network:
+class Network: #sequential Neural Network
     def __init__(self,layers):
         self.layers = layers
     
@@ -69,17 +93,15 @@ class Network:
         for layer in reversed(self.layers):
             error = layer.backward(error, lr = lr)
 
-    def forget(self):
-        for layer in self.layers:
-            layer.forget()
 
     def train (self, X, y, epochs, lr = 0.001):
         loss = []
         for epoch in range(epochs):
             output = self.forward(X)
-            loss.append(np.mean((output - y) ** 2))
+            curr_loss = np.mean((output - y) ** 2)
+            loss.append(curr_loss)
+            print(f"Epoch: {epoch}, loss: {curr_loss}")
             self.backward(output,y, lr)
-            self.forget()
 
         plt.plot(loss)
 
