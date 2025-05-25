@@ -91,10 +91,12 @@ class Network: #sequential Neural Network
             X = layer.forward(X)
         return X
     
-    def backward (self, y_pred, y_true, lr):
-        error = 2*(y_pred - y_true)/ y_true.shape[0]
+    def backward (self, error, lr):
+
         for layer in reversed(self.layers):
             error = layer.backward(error, lr = lr)
+
+        return error
 
 
     def train (self, X, y, epochs, lr = 1):
@@ -104,7 +106,8 @@ class Network: #sequential Neural Network
             curr_loss = np.mean((output - y) ** 2)
             loss.append(curr_loss)
             print(f"Epoch: {epoch}, loss: {curr_loss}")
-            self.backward(output,y, lr)
+            error = 2*(output - y)/ y.shape[0]
+            self.backward(error, lr)
 
         plt.plot(loss)
 
