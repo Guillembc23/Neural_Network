@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import pickle
+import gzip
 
 class Functional:
     def fun():
@@ -78,7 +80,11 @@ class Linear:
     
 class Network: #sequential Neural Network
     def __init__(self,layers):
-        self.layers = layers
+        if isinstance(layers, str):
+            with gzip.open(layers, 'rb') as f:
+                self.layers = pickle.load(f)['Layers']
+        else:
+            self.layers = layers
     
     def forward(self,X):
         for layer in self.layers:
@@ -91,7 +97,7 @@ class Network: #sequential Neural Network
             error = layer.backward(error, lr = lr)
 
 
-    def train (self, X, y, epochs, lr = 0.001):
+    def train (self, X, y, epochs, lr = 1):
         loss = []
         for epoch in range(epochs):
             output = self.forward(X)
@@ -110,6 +116,19 @@ class Network: #sequential Neural Network
 
     def predict(self,X):
         return self.forward(X)
+    
+    def params(self):
+        map = {}
+        map['Architecture'] = [layer.__class__.__name__ for layer in self.layers]
+        map['Layers'] = [layer for layer in self.layers]
+
+        return map
+    
+    def save(self, name):
+        with gzip.open(name, 'wb') as f:
+            pickle.dump(self.params(), f)
+
+
 
 
 
